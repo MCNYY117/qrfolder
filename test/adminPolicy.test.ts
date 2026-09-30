@@ -414,13 +414,18 @@ describe('checkScope', () => {
   test('★ 路径没改动时不做「别人的地盘」检查（否则压在别人目录下就没法改标题）', () => {
     // alice 自己的目录 id-alice，路径恰好也在共享根下（由超级管理员安排）；
     // 只要路径本身没动，改标题、改排序都该放行
+    //
+    // ★ 这里的账号必须是 aliceShared（授权根 = 整个共享根），不能是上面那个
+    //   roots 为 sites('alice') 的 alice。目录路径是 sites('Alice')，两者只在
+    //   **大小写不敏感**的文件系统上才算同一个位置 —— 在 Linux 上它们是两个目录，
+    //   于是这个改用例会拿到 outOfRoots，而 Windows 上永远看不出来。
     const ownInsideShared = config({
       directories: [dir('Bob', 'bob'), dir('Alice', 'alice', { id: 'dir-alice' })],
     });
     const verdict = checkScope(pathPolicy, {
       url: new URL('http://x/t'),
       form: { id: 'dir-alice', path: sites('Alice') },
-      account: alice,
+      account: aliceShared,
       directoryIds: ids,
       config: ownInsideShared,
     });
