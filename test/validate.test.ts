@@ -13,6 +13,19 @@ import {
 const APP = path.resolve('/fake/app');
 const CONFIG_FILE = path.join(APP, 'config', 'config.json');
 
+/**
+ * 夹具用的绝对路径根，沿用本文件既有的 `path.resolve('/fake/...')` 写法。
+ *
+ * ★ 不要在这里写 `C:\Sites` —— 在 Linux 上那不是绝对路径（反斜杠也不是
+ *   分隔符），`validateContentPath` 会直接判它非法，`isWithin` 也会把
+ *   子路径判成不相干的两处。这类用例只有 CI 跑 Linux 时才会失败。
+ */
+const SITES = path.resolve('/fake/sites');
+/** 池子外面的一块地方，用来验证越界会被丢掉 */
+const OUTSIDE = path.resolve('/fake/outside');
+const SHARED = path.join(SITES, 'shared');
+const DOCS_PATH = path.join(SITES, 'docs');
+
 describe('isWithin', () => {
   test('自身算在内', () => {
     assert.equal(isWithin(APP, APP), true);
@@ -329,11 +342,11 @@ describe('配置校验——管理员账号', () => {
             username: 'alice',
             role: 'sub',
             password: PASSWORD,
-            roots: ['C:\\Sites\\shared\\alice', 'C:\\Windows'],
+            roots: [path.join(SHARED, 'alice'), OUTSIDE],
           },
         ],
       },
-      { parentRoots: ['C:\\Sites\\shared'] },
+      { parentRoots: [SHARED] },
     );
     const roots = result.config.access.admins[0]?.roots ?? [];
     assert.equal(roots.length, 1, '越界的那个必须被丢掉');
@@ -349,24 +362,25 @@ describe('配置校验——管理员账号', () => {
    * 现场表现是「升级后起不来，而且看起来像配置损坏」。
    */
   test('★ 旧的 scanRoots 静默迁移成 parentRoots，不产生任何 issue', () => {
-    const result = validate({}, { scanRoots: ['C:\\Sites\\shared', 'D:\\Docs'] });
+    const result = validate({}, { scanRoots: [SHARED, DOCS_PATH] });
 
     assert.deepEqual(result.issues, [], '迁移不该报错');
-    assert.deepEqual(result.config.system.parentRoots, ['C:\\Sites\\shared', 'D:\\Docs']);
+    assert.deepEqual(result.config.system.parentRoots, [SHARED, DOCS_PATH]);
     // 输出里不该再留着旧键，否则两个键并存会让人分不清哪个说了算
     assert.equal('scanRoots' in result.config.system, false);
   });
 
   test('新键存在时以新键为准（旧键只是兼容读入）', () => {
-    const result = validate({}, { parentRoots: ['E:\\New'], scanRoots: ['C:\\Old'] });
-    assert.deepEqual(result.config.system.parentRoots, ['E:\\New']);
+    const result = validate({}, { parentRoots: [OUTSIDE], scanRoots: [SITES] });
+    assert.deepEqual(result.config.system.parentRoots, [OUTSIDE]);
     assert.deepEqual(result.issues, []);
   });
 
   test('父目录池会去重并解析成绝对路径', () => {
     // 以前这里是 asStringArray，原样保留用户敲进来的字符串，
     // 于是同一个目录的两种写法会被当成两个不同的根
-    const result = validate({}, { parentRoots: ['C:\\Sites\\shared', 'C:\\Sites\\shared\\', '  ', 'D:\\Docs'] });
+    // 同一个目录的两种写法（带不带尾随分隔符）必须收敛成一条
+    const result = validate({}, { parentRoots: [SHARED, SHARED + path.sep, '  ', DOCS_PATH] });
     assert.equal(result.config.system.parentRoots.length, 2);
     assert.ok(result.config.system.parentRoots.every((r) => path.isAbsolute(r)));
   });
@@ -415,7 +429,7 @@ describe('配置校验——管理员账号', () => {
           role: 'super',
           password: PASSWORD,
           permissions: ['files.view'],
-          roots: ['C:\\x'],
+          roots: [SITES],
         },
       ],
     });
@@ -438,7 +452,7 @@ describe('配置校验——目录归属', () => {
   test('老配置没有 owner 字段 → 归超级管理员，不报错', () => {
     const result = validateConfig({
       version: 1,
-      directories: [{ name: 'Docs', path: 'C:\\Sites\\docs' }],
+      directories: [{ name: 'Docs', path: DOCS_PATH }],
     });
     assert.equal(result.ok, true, JSON.stringify(result.issues));
     assert.equal(result.config.directories[0]?.owner, '');
@@ -451,7 +465,7 @@ describe('配置校验——目录归属', () => {
       access: {
         admins: [{ username: 'alice', role: 'sub', password: PASSWORD, id: 'alice-id' }],
       },
-      directories: [{ name: 'Docs', path: 'C:\\Sites\\docs', owner: 'ghost-id' }],
+      directories: [{ name: 'Docs', path: DOCS_PATH, owner: 'ghost-id' }],
     });
     assert.equal(result.config.directories[0]?.owner, '');
     assert.ok(result.issues.some((issue) => issue.at.includes('owner')));
@@ -463,7 +477,7 @@ describe('配置校验——目录归属', () => {
       access: {
         admins: [{ username: 'alice', role: 'sub', password: PASSWORD, id: 'alice-id' }],
       },
-      directories: [{ name: 'Docs', path: 'C:\\Sites\\docs', owner: 'alice-id' }],
+      directories: [{ name: 'Docs', path: DOCS_PATH, owner: 'alice-id' }],
     });
     assert.equal(result.config.directories[0]?.owner, 'alice-id');
   });

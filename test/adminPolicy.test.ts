@@ -34,6 +34,32 @@ import type { AdminAccount, AdminPermission, Config, DirectoryConfig } from '../
 
 // ---------------------------------------------------------------- 夹具
 
+/**
+ * 夹具用的绝对路径根，**按平台取**。
+ *
+ * ★ 不能把 `C:\Sites` 写死。在 Linux 上反斜杠不是路径分隔符，`C:\Sites\alice`
+ *   会被当成一个完整的**文件名**，于是 `path.relative('C:\Sites', 'C:\Sites\alice')`
+ *   得到 `../C:\Sites\alice` —— 包含性判断整个反过来，一整套授权用例全部失败。
+ *   而在 Windows 上开发时完全看不出来，只有 CI 跑 Linux 才会暴露。
+ */
+const IS_WINDOWS = process.platform === 'win32';
+/** 共享根：夹具里凡「自己的地盘」都挂在它下面 */
+const SITES = IS_WINDOWS ? 'C:\\Sites' : '/sites';
+/** 池子外面的一块地方，用来验证越界会被拒 */
+const OUTSIDE = IS_WINDOWS ? 'C:\\Elsewhere' : '/elsewhere';
+/** 一处与内容目录无关的系统位置 */
+const SYSTEM_DIR = IS_WINDOWS ? 'C:\\Windows' : '/etc';
+/** 盘符根（POSIX 上就是 `/`），用来验证根目录本身不能被授权 */
+const DRIVE_ROOT = IS_WINDOWS ? 'D:\\' : '/';
+
+/** 在共享根下拼一个路径。必须走 path.join —— 字符串拼接会在另一平台上用错分隔符 */
+function sites(...parts: string[]): string {
+  return path.join(SITES, ...parts);
+}
+
+/** 带尾随分隔符的共享根：`C:\Sites\` 与 `/sites/` 指的是同一个目录 */
+const SITES_TRAILING = SITES + path.sep;
+
 function account(overrides: Partial<AdminAccount> & { username: string }): AdminAccount {
   return {
     id: overrides.username,
@@ -51,7 +77,7 @@ function dir(name: string, owner: string, extra: Partial<DirectoryConfig> = {}):
   return {
     id: `id-${name}`,
     name,
-    path: `C:\\Sites\\${name}`,
+    path: sites(name),
     label: '',
     enabled: true,
     access: 'inherit',
@@ -70,7 +96,7 @@ function dir(name: string, owner: string, extra: Partial<DirectoryConfig> = {}):
 function config(overrides: Partial<Config> = {}): Config {
   return {
     version: 1,
-    system: { scanRoots: ['C:\\Sites'] },
+    system: { scanRoots: [SITES] },
     appearance: {},
     access: { admins: [] },
     directories: [],
@@ -263,31 +289,31 @@ describe('可见目录', () => {
 });
 
 describe('授权根目录', () => {
-  const alice = account({ username: 'alice', roots: ['C:\\Sites\\shared\\alice'] });
+  const alice = account({ username: 'alice', roots: [sites('shared', 'alice')] });
 
   test('落在授权范围内放行', () => {
-    assert.equal(isPathAuthorized(alice, 'C:\\Sites\\shared\\alice\\Docs'), true);
-    assert.equal(isPathAuthorized(alice, 'C:\\Sites\\shared\\alice'), true, '自身也算在内');
+    assert.equal(isPathAuthorized(alice, sites('shared', 'alice', 'Docs')), true);
+    assert.equal(isPathAuthorized(alice, sites('shared', 'alice')), true, '自身也算在内');
   });
 
   test('★ 越界一律拒绝（否则子管理员能发布服务器上任意目录）', () => {
-    assert.equal(isPathAuthorized(alice, 'C:\\Sites\\shared\\bob'), false);
-    assert.equal(isPathAuthorized(alice, 'C:\\Windows\\System32'), false);
-    assert.equal(isPathAuthorized(alice, 'D:\\'), false);
+    assert.equal(isPathAuthorized(alice, sites('shared', 'bob')), false);
+    assert.equal(isPathAuthorized(alice, path.join(SYSTEM_DIR, 'System32')), false);
+    assert.equal(isPathAuthorized(alice, DRIVE_ROOT), false);
   });
 
   test('★ 相似前缀不算在内（alice 不能进 alice2）', () => {
-    assert.equal(isPathAuthorized(alice, 'C:\\Sites\\shared\\alice2\\Docs'), false);
+    assert.equal(isPathAuthorized(alice, sites('shared', 'alice2', 'Docs')), false);
   });
 
   test('超级管理员不受根目录限制', () => {
     const root = account({ username: 'root', role: 'super', roots: [] });
-    assert.equal(isPathAuthorized(root, 'C:\\Windows'), true);
+    assert.equal(isPathAuthorized(root, SYSTEM_DIR), true);
   });
 });
 
 describe('checkScope', () => {
-  const alice = account({ username: 'alice', roots: ['C:\\Sites\\alice'] });
+  const alice = account({ username: 'alice', roots: [sites('alice')] });
   const ids = new Set(['dir-alice']);
   /**
    * 授权根是**整个共享根**的账号。
@@ -296,7 +322,7 @@ describe('checkScope', () => {
    * 线上就是这么配的。Bob 的目录压在这个根里面，于是「在自己授权根之内」
    * 这条检查会放行它，必须再有一条「不能指别人的地盘」。
    */
-  const aliceShared = account({ username: 'alice', roots: ['C:\\Sites'] });
+  const aliceShared = account({ username: 'alice', roots: [SITES] });
   const shared = config({ directories: [dir('Bob', 'bob')] });
 
   const dirPolicy: RoutePolicy = {
@@ -344,8 +370,8 @@ describe('checkScope', () => {
   });
 
   test('路径越界返回 outOfRoots（这个可以明说，因为是请求本身不对）', () => {
-    assert.deepEqual(run(pathPolicy, '/t', { path: 'C:\\Sites\\alice\\Docs' }), { ok: true });
-    assert.deepEqual(run(pathPolicy, '/t', { path: 'C:\\Elsewhere' }), {
+    assert.deepEqual(run(pathPolicy, '/t', { path: sites('alice', 'Docs') }), { ok: true });
+    assert.deepEqual(run(pathPolicy, '/t', { path: OUTSIDE }), {
       ok: false,
       reason: 'outOfRoots',
     });
@@ -373,16 +399,16 @@ describe('checkScope', () => {
 
     // 先确认前提成立：这个路径**确实**在自己的授权根里，
     // 否则下面测到的就不是「别人的地盘」那条规则，而是 outOfRoots
-    assert.equal(isPathAuthorized(aliceShared, 'C:\\Sites\\Bob'), true);
+    assert.equal(isPathAuthorized(aliceShared, sites('Bob')), true);
 
-    assert.deepEqual(runShared({ path: 'C:\\Sites\\Bob' }), { ok: false, reason: 'foreignPath' });
+    assert.deepEqual(runShared({ path: sites('Bob') }), { ok: false, reason: 'foreignPath' });
     // 别人的目录**里面**也不行
-    assert.deepEqual(runShared({ path: 'C:\\Sites\\Bob\\inner' }), {
+    assert.deepEqual(runShared({ path: sites('Bob', 'inner') }), {
       ok: false,
       reason: 'foreignPath',
     });
     // 自己授权根里没被别人占用的地方照常可以
-    assert.deepEqual(runShared({ path: 'C:\\Sites\\fresh' }), { ok: true });
+    assert.deepEqual(runShared({ path: sites('fresh') }), { ok: true });
   });
 
   test('★ 路径没改动时不做「别人的地盘」检查（否则压在别人目录下就没法改标题）', () => {
@@ -393,7 +419,7 @@ describe('checkScope', () => {
     });
     const verdict = checkScope(pathPolicy, {
       url: new URL('http://x/t'),
-      form: { id: 'dir-alice', path: 'C:\\Sites\\Alice' },
+      form: { id: 'dir-alice', path: sites('Alice') },
       account: alice,
       directoryIds: ids,
       config: ownInsideShared,
@@ -407,40 +433,40 @@ describe('checkScope', () => {
    */
   describe('isAuthorizedParent', () => {
     const withPool = config({
-      system: { parentRoots: ['C:\\Sites'] },
-      access: { admins: [account({ username: 'alice', roots: ['C:\\Sites\\alice'] })] },
+      system: { parentRoots: [SITES] },
+      access: { admins: [account({ username: 'alice', roots: [sites('alice')] })] },
     } as Partial<Config>);
 
     test('池子里的路径算，子管理员被勾选的授权根也算', () => {
-      assert.equal(isAuthorizedParent(withPool, 'C:\\Sites'), true);
-      assert.equal(isAuthorizedParent(withPool, 'C:\\Sites\\alice'), true);
+      assert.equal(isAuthorizedParent(withPool, SITES), true);
+      assert.equal(isAuthorizedParent(withPool, sites('alice')), true);
     });
 
     test('尾随斜杠、冗余的点段都会被归一化掉', () => {
-      assert.equal(isAuthorizedParent(withPool, 'C:\\Sites\\alice\\'), true);
-      assert.equal(isAuthorizedParent(withPool, 'C:\\Sites\\.\\alice'), true);
-      assert.equal(isAuthorizedParent(withPool, 'C:\\Sites\\'), true);
+      assert.equal(isAuthorizedParent(withPool, sites('alice') + path.sep), true);
+      assert.equal(isAuthorizedParent(withPool, SITES + path.sep + '.' + path.sep + 'alice'), true);
+      assert.equal(isAuthorizedParent(withPool, SITES_TRAILING), true);
     });
 
     test('★ Windows 上加一层大小写折换，换个写法绕不过去', () => {
       // 别的平台路径大小写敏感，`A` 和 `a` 真是两个目录，折了会误伤 —— 所以只断言 Windows
-      if (process.platform !== 'win32') return;
+      if (!IS_WINDOWS) return;
       assert.equal(isAuthorizedParent(withPool, 'c:\\sites\\'), true);
       assert.equal(isAuthorizedParent(withPool, 'C:\\SITES\\ALICE'), true);
     });
 
     test('★ 只比相等：容器下面的子目录照常可以发布', () => {
-      assert.equal(isAuthorizedParent(withPool, 'C:\\Sites\\docs'), false);
-      assert.equal(isAuthorizedParent(withPool, 'C:\\Sites\\alice\\site'), false);
+      assert.equal(isAuthorizedParent(withPool, sites('docs')), false);
+      assert.equal(isAuthorizedParent(withPool, sites('alice', 'site')), false);
     });
 
     test('超级管理员的 roots 是空数组，不会因此把所有路径都判成授权父目录', () => {
       const withSuper = config({
-        system: { parentRoots: ['C:\\Sites'] },
+        system: { parentRoots: [SITES] },
         access: { admins: [account({ username: 'root', role: 'super' })] },
       } as Partial<Config>);
-      assert.equal(isAuthorizedParent(withSuper, 'C:\\Sites\\docs'), false);
-      assert.equal(isAuthorizedParent(withSuper, 'C:\\Sites'), true);
+      assert.equal(isAuthorizedParent(withSuper, sites('docs')), false);
+      assert.equal(isAuthorizedParent(withSuper, SITES), true);
     });
   });
 
@@ -448,7 +474,7 @@ describe('checkScope', () => {
     const root = account({ username: 'root', role: 'super' });
     const verdict = checkScope(pathPolicy, {
       url: new URL('http://x/t'),
-      form: { path: 'C:\\Windows' },
+      form: { path: SYSTEM_DIR },
       account: root,
       directoryIds: new Set(),
       config: shared,
@@ -482,17 +508,17 @@ describe('checkScope', () => {
       });
 
     test('拼接结果落在授权根里就放行', () => {
-      assert.deepEqual(run({ parent: 'C:\\Sites\\alice', folder: 'Docs' }), { ok: true });
+      assert.deepEqual(run({ parent: sites('alice'), folder: 'Docs' }), { ok: true });
     });
 
     test('拼接结果越界就拒绝', () => {
-      assert.deepEqual(run({ parent: 'C:\\Sites\\alice', folder: 'Docs' }), { ok: true });
-      assert.deepEqual(run({ parent: 'C:\\Elsewhere', folder: 'Docs' }), {
+      assert.deepEqual(run({ parent: sites('alice'), folder: 'Docs' }), { ok: true });
+      assert.deepEqual(run({ parent: OUTSIDE, folder: 'Docs' }), {
         ok: false,
         reason: 'outOfRoots',
       });
       // 目录名里的 .. 会被解析掉，落点回到父目录的上一级 —— 必须按解析后的算
-      assert.deepEqual(run({ parent: 'C:\\Sites\\alice', folder: '..' }), {
+      assert.deepEqual(run({ parent: sites('alice'), folder: '..' }), {
         ok: false,
         reason: 'outOfRoots',
       });
@@ -506,17 +532,17 @@ describe('checkScope', () => {
     test('★ 换一个父目录、别的都不改 —— 检查的必须仍然是拼出来的那个新位置', () => {
       // 这是这套设计的关键：路径完全由 parent+folder 决定，
       // 不存在「客户端说它没改，于是跳过检查」那条路
-      assert.deepEqual(run({ parent: 'C:\\Sites', folder: 'alice' }, aliceShared), { ok: true });
-      assert.deepEqual(run({ parent: 'C:\\Sites', folder: 'Bob' }, aliceShared), {
+      assert.deepEqual(run({ parent: SITES, folder: 'alice' }, aliceShared), { ok: true });
+      assert.deepEqual(run({ parent: SITES, folder: 'Bob' }, aliceShared), {
         ok: false,
         reason: 'foreignPath',
       });
     });
 
     test('joinTarget 与 path.resolve 同规则（目录名为空时就是父目录本身）', () => {
-      assert.equal(joinTarget('C:\\Sites\\alice', ''), path.resolve('C:\\Sites\\alice'));
-      assert.equal(joinTarget('C:\\Sites', 'Docs'), path.resolve('C:\\Sites\\Docs'));
-      assert.equal(joinTarget('C:\\Sites', '  Docs  '), path.resolve('C:\\Sites\\Docs'));
+      assert.equal(joinTarget(sites('alice'), ''), path.resolve(sites('alice')));
+      assert.equal(joinTarget(SITES, 'Docs'), path.resolve(sites('Docs')));
+      assert.equal(joinTarget(SITES, '  Docs  '), path.resolve(sites('Docs')));
     });
   });
 });
