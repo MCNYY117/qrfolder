@@ -1,0 +1,97 @@
+name: Bug report
+description: Something behaves differently from how it is documented, or clearly wrongly
+title: '[Bug] '
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **If this is a security problem, stop — do not file it here.** See
+        `SECURITY.md` in the repository root for the private reporting channel.
+
+        Before you type: the FAQ near the end of `README.md`, and the "known gaps"
+        sections in `CLAUDE.md` and `docs/security.md`, list a number of things
+        that are deliberately not supported (no multi-instance, no `multipart`
+        uploads, no per-account login throttling, config-validation messages are
+        Chinese-only). Those are decisions, not bugs.
+
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: The `version` in package.json, or the commit you are on.
+      placeholder: '0.1.0, or 4f2a1b9'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - Linux
+        - macOS
+        - Other / not sure
+    validations:
+      required: true
+
+  - type: input
+    id: node
+    attributes:
+      label: Node version
+      description: Output of `node --version`. The floor is 22.18.0.
+      placeholder: v22.18.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: Including the exact status code, and the actual response body if there was one.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+      description: A link to the README or docs line that led you to expect it is the most useful thing you can add.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: A fresh install and the smallest possible set of steps is ideal.
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Relevant configuration
+      description: |
+        The directory entries or settings involved (the `system` / `directories`
+        parts of `config/config.json`, or a screenshot of the admin page).
+
+        **Redact real paths, domains, IP addresses and passwords.** A directory
+        entry with `D:\data\example` in it tells me everything I need.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Confirmations
+      options:
+        - label: I am running the code from this repository, not a fork with local changes
+          required: false
+        - label: I searched the existing issues for this
+          required: true

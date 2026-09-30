@@ -1,0 +1,56 @@
+# The two commands CONTRIBUTING.md asks a contributor to run before opening a
+# pull request. CI is the backstop for that rule, not a separate set of checks
+# with its own opinions.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Reading the repository is all any of this needs.
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Node ${{ matrix.node }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Do not cancel the rest of the matrix when one job fails. Whether a break
+      # is Linux-only, Windows-only, or both is most of the reason to run it on
+      # two platforms at all.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        # 22.18.0 is the floor declared in package.json engines — the release
+        # where type stripping stopped needing a flag. 24.x is what it is
+        # developed on. Testing the exact floor, not "22.x", is deliberate: the
+        # floor is a promise made in the README and it should be the claim that
+        # gets tested.
+        node: ['22.18.0', '24.x']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      # Nothing here is a runtime dependency — this only installs typescript and
+      # @types/node for the type check below.
+      - name: Install dev dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run check
+
+      # The test files are named explicitly instead of relying on `node --test`
+      # discovering them. Which extensions the default patterns pick up has
+      # moved around across Node releases, and a run that finds zero test files
+      # and reports success is worse than having no CI at all — it is a green
+      # tick that means nothing. Naming them makes the floor version's behaviour
+      # irrelevant.
+      - name: Test
+        run: node --test "test/**/*.test.ts"

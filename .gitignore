@@ -1,0 +1,27 @@
+node_modules/
+
+# 运行时生成：含 sessionSecret 与密码哈希，绝不入库
+config/config.json
+
+# 日志
+logs/
+*.log
+
+# 生成的 Caddyfile（内容是本机的域名，因部署而异）
+caddy/Caddyfile
+
+# Caddy 的数据目录：**里面有证书私钥**。
+# 默认在用户目录下，但如果有人把 storage 配到项目里，绝不能进仓库。
+caddy/data/
+caddy/autosave.json
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 临时文件（原子写的中间态，以及排查问题时用的临时脚本）
+*.tmp
+.tmp-*

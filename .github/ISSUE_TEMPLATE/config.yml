@@ -1,0 +1,9 @@
+# Blank issues are off on purpose. Almost everything that arrives without a
+# template is either a security report (which must not be public — see
+# SECURITY.md) or a request for help with a deployment detail that
+# docs/deployment.md already answers.
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability (private)
+    url: https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability
+    about: Use this repository's private reporting, never a public issue. SECURITY.md explains what counts as a vulnerability.

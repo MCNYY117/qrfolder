@@ -1,0 +1,23 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+# Windows-only launchers: CRLF, because batch files are where LF actually bites
+# (goto, labels and parenthesised blocks).
+[*.{bat,cmd,ps1}]
+end_of_line = crlf
+
+# scripts/service.ps1 carries ~67 Chinese literals. PowerShell 5.1 reads a
+# BOM-less UTF-8 file as ANSI and turns every one of them into a question mark,
+# with no error. The BOM is load-bearing here — do not let an editor strip it.
+[*.ps1]
+charset = utf-8-bom

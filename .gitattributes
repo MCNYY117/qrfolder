@@ -1,0 +1,22 @@
+# Store everything textual as LF in the repository. .editorconfig asks editors
+# for the same thing; this is the half that git is responsible for, and it is
+# the half that survives a contributor whose editor ignores .editorconfig.
+
+* text=auto eol=lf
+
+# The two Windows launchers. Batch files are the classic LF footgun — goto,
+# labels and parenthesised blocks misbehave on an LF-only file — and these run
+# nowhere else, so check them out as CRLF. scripts/service.ps1 gets the same
+# treatment for the same reason.
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Adding a favicon or a screenshot for the README should not require anyone to
+# remember to mark it binary first.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary

@@ -1,0 +1,49 @@
+name: Feature request
+description: Suggest something the project should do that it does not do today
+title: '[Feature] '
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Worth knowing before you spend time on this: the project turns down
+        anything that needs a runtime dependency, and anything that cannot
+        survive Node's type stripping. Both rules and the reasoning behind them
+        are in `CONTRIBUTING.md`. A well-argued request can still be declined for
+        either reason, so it is worth saying up front how yours avoids them.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem you are actually trying to solve
+      description: |
+        Describe the situation, not the solution — "I have 40 clients and adding
+        them one at a time takes an hour" is more useful than "add a bulk import
+        button", because the first one admits other answers.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like it to do
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you tried or considered instead
+      description: Including "and why it did not work" — that is usually the most valuable part.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Constraints
+      options:
+        - label: This does not require adding a runtime dependency
+          required: true
+        - label: I understand that a request can be declined even if it is a good idea
+          required: false

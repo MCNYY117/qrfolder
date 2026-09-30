@@ -1,0 +1,39 @@
+{
+  "name": "qrfolder",
+  "version": "1.0.0",
+  "description": "QRFolder — turn a folder on your server into a scannable file site by NYY",
+  "type": "module",
+  "license": "MIT",
+  "author": "MCNYY117",
+  "homepage": "https://github.com/MCNYY117/qrfolder",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MCNYY117/qrfolder.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MCNYY117/qrfolder/issues"
+  },
+  "keywords": [
+    "directory-listing",
+    "file-server",
+    "static-server",
+    "qr-code",
+    "file-sharing",
+    "self-hosted",
+    "zero-dependency",
+    "typescript"
+  ],
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "start": "node src/main.ts",
+    "dev": "node --watch src/main.ts",
+    "check": "tsc --noEmit",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}

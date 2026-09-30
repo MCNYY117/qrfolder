@@ -1,0 +1,126 @@
+{
+  "version": 1,
+
+  "system": {
+    "host": "127.0.0.1",
+    "port": 8080,
+    "adminPath": "/admin",
+    "trustProxy": false,
+    "trustedProxyCidrs": ["127.0.0.1/32", "::1/128"],
+    "sessionSecret": "",
+    "sessionTtlMinutes": 720,
+    "bindSessionToIp": false,
+    "logLevel": "info",
+    "accessLog": {
+      "enabled": true,
+      "ringSize": 500,
+      "persistToFile": false,
+      "filePath": "logs/access.log",
+      "anonymizeIp": false
+    },
+    "parentRoots": ["/srv/documents"],
+    "upload": {
+      "enabled": true,
+      "maxSizeMb": 512,
+      "allowOverwrite": false
+    },
+    "publicBaseUrl": "",
+    "tls": {
+      "enabled": false,
+      "domains": [],
+      "email": "",
+      "staging": true,
+      "caddyBinary": "C:\\caddy\\caddy.exe",
+      "caddyConfigPath": "caddy/Caddyfile",
+      "adminApi": "http://127.0.0.1:2019"
+    }
+  },
+
+  "appearance": {
+    "productName": "QRFolder",
+    "siteTitle": "",
+    "listingLanguage": "auto",
+    "rootBehavior": "welcome",
+    "welcomeTitle": { "zh": "", "en": "" },
+    "welcomeMessage": { "zh": "", "en": "" },
+    "welcomeImage": "",
+    "welcomeImageAlt": { "zh": "", "en": "" },
+    "welcomeImageWidth": 0,
+    "welcomeHint": { "zh": "", "en": "" },
+    "theme": "auto",
+    "accentColor": "#2563eb",
+    "folderColor": "#f59e0b",
+    "density": "comfortable",
+    "showBreadcrumbs": true,
+    "showFileSize": true,
+    "showModTime": true,
+    "showFilterBox": true,
+    "showSummary": true,
+    "defaultSort": "namedirfirst",
+    "defaultOrder": "asc",
+    "timeZone": "auto",
+    "previewExtensions": [
+      ".pdf", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".avif", ".ico",
+      ".mp4", ".webm", ".ogv", ".mov",
+      ".mp3", ".wav", ".ogg", ".flac", ".m4a", ".aac",
+      ".txt", ".md", ".csv", ".json"
+    ],
+    "forceDownloadExtensions": [
+      ".html", ".htm", ".xhtml", ".shtml",
+      ".svg", ".svgz",
+      ".xml", ".xsl", ".xslt",
+      ".js", ".mjs", ".cjs"
+    ],
+    "footerText": "",
+    "customCss": ""
+  },
+
+  "access": {
+    "siteMode": "public",
+    "sitePassword": null,
+    "adminIpAllowlist": [],
+    "admins": [],
+    "rateLimit": {
+      "loginMaxAttempts": 5,
+      "loginWindowMinutes": 15,
+      "lockoutMinutes": 15,
+      "lockoutMaxMinutes": 1440,
+      "maxConcurrentHashes": 4
+    },
+    "hideDotfiles": true,
+    "deniedExtensions": [
+      ".env", ".ini", ".cfg", ".conf", ".bak", ".old", ".orig", ".log", ".tmp",
+      ".key", ".pem", ".crt", ".cer", ".pfx", ".p12", ".keystore", ".jks",
+      ".sql", ".db", ".sqlite", ".mdb",
+      ".ps1", ".bat", ".cmd", ".sh", ".bash", ".zsh",
+      ".exe", ".dll", ".so", ".dylib", ".msi", ".com", ".scr",
+      ".reg", ".lnk", ".url", ".desktop",
+      ".htaccess", ".htpasswd", ".user", ".gitignore"
+    ],
+    "deniedFilenames": [
+      "desktop.ini", "thumbs.db", ".ds_store",
+      ".git", ".svn", ".hg",
+      "~$*", ".~lock.*",
+      "web.config", "config.json"
+    ]
+  },
+
+  "directories": [
+    {
+      "id": "a1b2c3d4",
+      "name": "ExampleCorp",
+      "path": "/srv/documents/ExampleCorp",
+      "label": "",
+      "enabled": true,
+      "access": "inherit",
+      "password": null,
+      "allowedCidrs": [],
+      "followSymlinks": false,
+      "sort": "",
+      "order": "",
+      "hideDotfiles": null,
+      "note": "",
+      "owner": ""
+    }
+  ]
+}
