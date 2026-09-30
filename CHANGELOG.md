@@ -10,6 +10,8 @@ Entries are written for people running the thing, not for people reading the dif
 
 ## [1.0.0] — 2026-09-30
 
+First public release.
+
 ### Added
 
 - **Deleting a directory can now delete its contents too.** Unpublishing (the old
@@ -159,11 +161,13 @@ Entries are written for people running the thing, not for people reading the dif
   date pickers now also follow the dark theme, and navigation no longer flashes
   the wrong background colour.
 
-## [0.1.0] — 2026-09-23
+### The 0.1.0 baseline, folded in
 
-First working version.
+0.1.0 was an internal milestone: it was never tagged, and there is no code state
+anyone could check out for it. Its feature list belongs to 1.0.0, so it lives here
+rather than as a version page that would 404.
 
-### Content side
+#### Content side
 
 - Directory listings with no default-document override: even a directory
   containing `index.html` is listed.
@@ -178,7 +182,7 @@ First working version.
   filenames, optional dotfile hiding, CSP with a per-response nonce, and no
   `Server` / `X-Powered-By` fingerprints.
 
-### Admin panel
+#### Admin panel
 
 - Directory management with add/edit/remove, bulk "scan and import" and a
   server-side directory browser.
@@ -203,16 +207,17 @@ First working version.
   certificate. The page shows the certificate actually being served, read back
   over a real TLS handshake.
 
-### Engineering
+#### Engineering
 
 - **Zero runtime dependencies.** Deployment is copying the source.
 - TypeScript executed directly by Node's type stripping; no build step.
 - Config hot-reload that refuses to fall back to defaults when validation fails
   (falling back would silently turn a password-protected site public).
-- 328 tests on `node:test`, including an integration suite that boots a real
+- 387 tests on `node:test`, including an integration suite that boots a real
   server and walks the whole admin flow over HTTP, and a second one that boots a
   two-tenant fixture and verifies a sub admin can reach nothing they weren't
-  given.
+  given. CI runs the whole suite on Node 22.18 and 24.x, on both Linux and
+  Windows.
 - **Admin routes are fail-closed by table.** Every route is declared once in
   `src/admin/policy.ts` with the methods it accepts, who may reach it, and which
   object it touches. A route that isn't in the table 404s, so adding an
@@ -223,4 +228,3 @@ First working version.
 
 [Unreleased]: https://github.com/MCNYY117/qrfolder/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/MCNYY117/qrfolder/releases/tag/v1.0.0
-[0.1.0]: https://github.com/MCNYY117/qrfolder/releases/tag/v0.1.0

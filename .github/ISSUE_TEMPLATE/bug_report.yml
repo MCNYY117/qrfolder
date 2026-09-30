@@ -20,7 +20,7 @@ body:
     attributes:
       label: Version or commit
       description: The `version` in package.json, or the commit you are on.
-      placeholder: '0.1.0, or 4f2a1b9'
+      placeholder: '1.0.0, or 4f2a1b9'
     validations:
       required: true
 
